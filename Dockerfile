@@ -1,23 +1,39 @@
 FROM larmog/armhf-alpine-java:jdk-8u73
 
-MAINTAINER Jay MOULIN <jaymoulin@gmail.com>
+LABEL maintainer="Jaroslav Hranicka <me@hranicka.cz>"
 
-# archive extraction uses sevenzipjbinding library
-# which is compiled against libstdc++
-RUN mkdir /opt/JDownloader/
-RUN apk add --update libstdc++ && apk add wget  --virtual .build-deps && \
-	wget -O /opt/JDownloader/JDownloader.jar "http://installer.jdownloader.org/JDownloader.jar?$RANDOM" && chmod +x /opt/JDownloader/JDownloader.jar && \
-	wget -O /sbin/tini "https://github.com/krallin/tini/releases/download/v0.16.1/tini-static-armhf" --no-check-certificate && chmod +x /sbin/tini && \
+# JDownloader
+RUN mkdir /opt/jdownloader
+
+# Archive extraction uses sevenzipjbinding library which is compiled against libstdc++
+RUN apk add --update \
+    libstdc++
+
+RUN apk add --update \
+    wget --virtual .build-deps && \
+	wget -O /opt/jdownloader/JDownloader.jar "http://installer.jdownloader.org/JDownloader.jar?$RANDOM" && \
+    chmod +x /opt/jdownloader/JDownloader.jar && \
+	wget -O /sbin/tini "https://github.com/krallin/tini/releases/download/v0.16.1/tini-static-armhf" --no-check-certificate && \
+	chmod +x /sbin/tini && \
 	apk del wget --purge .build-deps
+
 ENV LD_LIBRARY_PATH=/lib;/lib32;/usr/lib
 
-
-ADD daemon.sh /opt/JDownloader/
-ADD default-config.json.dist /opt/JDownloader/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json.dist
+ADD daemon.sh /opt/jdownloader/
+ADD default-config.json.dist /opt/jdownloader/org.jdownloader.api.myjdownloader.MyJDownloaderSettings.json.dist
 ADD configure.sh /usr/bin/configure
 
 VOLUME /root/Downloads
-VOLUME /opt/JDownloader/cfg
-WORKDIR /opt/JDownloader
+VOLUME /opt/jdownloader/cfg
 
-CMD ["/sbin/tini", "--", "/opt/JDownloader/daemon.sh"]
+# VPN
+RUN apk add --update openvpn
+
+ADD configure-vpn.sh /usr/bin/configure-vpn
+
+VOLUME /etc/openvpn
+
+# Finish
+WORKDIR /opt/jdownloader
+
+CMD ["/sbin/tini", "--", "/opt/jdownloader/daemon.sh"]

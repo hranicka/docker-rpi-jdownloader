@@ -1,33 +1,69 @@
+> This is fork of [jaymoulin/docker-rpi-jdownloader](https://github.com/jaymoulin/docker-rpi-jdownloader)
+>
+> Adds OpenVPN client to protect your privacy.
+> Inspired by [haugene/docker-transmission-openvpn](https://github.com/haugene/docker-transmission-openvpn) and [dperson/openvpn-client](https://github.com/dperson/openvpn-client).
+
+---
+
 ![logo](logo.png "logo")
 
 Raspberry PI - JDownloader - Docker Image
 =
 
-[![latest release](https://img.shields.io/github/release/jaymoulin/docker-rpi-jdownloader.svg "latest release")](http://github.com/jaymoulin/docker-rpi-jdownloader/releases)
-
 This image allows you to have JDownloader daemon installed easily thanks to Docker.
+
+Build Docker image
+---
+
+```
+git clone https://github.com/hranicka/docker-rpi-jdownloader.git
+cd docker-rpi-jdownloader
+docker image build . -t hranicka/rpi-jdownloader
+```
 
 Installation
 ---
 
 ```
-docker run -d --restart=always -v ~/Downloads:/root/Downloads -v ~/jdownloader/cfg:/opt/JDownloader/cfg --name jdownloader jaymoulin/rpi-jdownloader
+docker run -d \
+    --name jdownloader \
+    --restart=always \
+    --cap-add=NET_ADMIN \
+    --device=/dev/net/tun \
+    --dns 8.8.4.4 \
+    -v ~/Downloads/jdownloader:/root/Downloads \
+    -v ~/jdownloader/cfg:/opt/jdownloader/cfg \
+    -v ~/jdownloader/vpn:/etc/openvpn \
+    hranicka/rpi-jdownloader
 ```
 
-You can replace `~/Downloads` with the folder you want your downloaded files to go.
+This approach expects to have these directories on host machine:
 
-It is recommended to add `-v ~/jdownloader/cfg:/opt/JDownloader/cfg` to your command to save all your configurations. 
+* `~/Downloads` - folder you want download files to
+* `~/jdownloader/cfg` - JDownloader configuration files
+* `~/jdownloader/vpn` - VPN configuration files
 
 Configuration
 ---
 
-You must configure your MyJDownloader login/password with this command :
+You have to configure your MyJDownloader login/password with this command :
 
 ```
-docker exec jdownloader configure email@email.com password
+docker exec jdownloader configure <email> <password>
 ```
 
 Everything else can be configurable on your MyJDownloader account : https://my.jdownloader.org/index.html#dashboard
+
+VPN
+---
+
+You can configure VPN by this command :
+
+```
+docker exec jdownloader configure-vpn <config file> <auth file>
+```
+
+Keep in mind you have `/etc/openvpn` mounted volume and have to place your config and auth files there.
 
 Appendixes
 ---
